@@ -7,7 +7,7 @@ orbs:
 executors:
   node-executor:
     docker:
-      - image: circleci/node:18
+      - image: node:18-bullseye
     working_directory: ~/project
 
 jobs:
@@ -15,11 +15,21 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-
       - run:
           name: "Install dependencies"
-          command: npm install
+          command: |
+            set -e
+            npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
       - run:
-          name: "Linting"
+          name: "Linting code"
           command: npm run lint
       - run:
           name: "Build project"
@@ -35,11 +45,16 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
       - attach_workspace:
           at: ~/project
       - run:
           name: "Run tests"
-          command: npm run test
+          command: |
+            set -e
+            npm run test
 
   docker-build:
     docker:
@@ -48,39 +63,52 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: 20.10.16
+          docker_layer_caching: true
       - run:
           name: "Build and tag Docker image"
           command: |
-            docker build -t monrepo/monapp:latest .
+            set -e
+            docker build --cache-from monrepo/monapp:latest -t monrepo/monapp:$CIRCLE_SHA1 .
       - run:
-          name: "Push Docker image to Docker Hub"
+          name: "Login to Docker Hub"
           command: |
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-            docker tag monrepo/monapp:latest monrepo/monapp:$CIRCLE_SHA1
+      - run:
+          name: "Push Docker image"
+          command: |
+            set -e
             docker push monrepo/monapp:$CIRCLE_SHA1
-            docker push monrepo/monapp:latest
 
-  deploy_vercel_dev:
+  deploy_vercel:
     executor: node-executor
+    parameters:
+      vercel_scope:
+        type: string
     steps:
       - checkout
       - run:
-          name: "Deploy to Vercel (Development)"
+          name: "Deploy to Vercel"
           command: |
-            vercel --token $VERCEL_TOKEN --prod
-
-  deploy_vercel_prod:
-    executor: node-executor
-    steps:
-      - checkout
-      - run:
-          name: "Deploy to Vercel (Production)"
-          command: |
-            vercel --token $VERCEL_TOKEN --prod --scope mon-organisation
+            set -e
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope << parameters.vercel_scope >>)
+            echo "Deployment URL: $DEPLOY_URL"
+            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
 workflows:
   version: 2
-  build-test-deploy:
+
+  feature-workflow:
+    when:
+      equal: [ "feature", << pipeline.git.branch >> ]
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+
+  develop-workflow:
+    when:
+      equal: [ "develop", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -88,18 +116,43 @@ workflows:
             - build
       - docker-build:
           requires:
+            - test
+      - deploy_vercel:
+          name: deploy_vercel_dev
+          requires:
+            - docker-build
+          vercel_scope: "development"
+
+  integration-workflow:
+    when:
+      equal: [ "integration", << pipeline.git.branch >> ]
+    jobs:
+      - build
+      - test:
+          requires:
             - build
-      - deploy_vercel_dev:
+      - docker-build:
           requires:
             - test
+      - deploy_vercel:
+          name: deploy_vercel_int
+          requires:
             - docker-build
-          filters:
-            branches:
-              only: develop
-      - deploy_vercel_prod:
+          vercel_scope: "mon-organisation-integration"
+
+  production-workflow:
+    when:
+      equal: [ "main", << pipeline.git.branch >> ]
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - docker-build:
           requires:
             - test
+      - deploy_vercel:
+          name: deploy_vercel_prod
+          requires:
             - docker-build
-          filters:
-            branches:
-              only: main
+          vercel_scope: "mon-organisation"
