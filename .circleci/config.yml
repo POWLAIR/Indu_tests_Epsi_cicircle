@@ -79,39 +79,18 @@ jobs:
             set -e
             docker push monrepo/monapp:$CIRCLE_SHA1
 
-  deploy_vercel_dev:
+  deploy_vercel:
     executor: node-executor
+    parameters:
+      vercel_scope:
+        type: string
     steps:
       - checkout
       - run:
-          name: "Deploy to Vercel (Development)"
+          name: "Deploy to Vercel"
           command: |
             set -e
-            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod)
-            echo "Deployment URL: $DEPLOY_URL"
-            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
-
-  deploy_vercel_int:
-    executor: node-executor
-    steps:
-      - checkout
-      - run:
-          name: "Deploy to Vercel (Integration)"
-          command: |
-            set -e
-            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope mon-organisation-integration)
-            echo "Deployment URL: $DEPLOY_URL"
-            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
-
-  deploy_vercel_prod:
-    executor: node-executor
-    steps:
-      - checkout
-      - run:
-          name: "Deploy to Vercel (Production)"
-          command: |
-            set -e
-            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope mon-organisation)
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope << parameters.vercel_scope >>)
             echo "Deployment URL: $DEPLOY_URL"
             curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
@@ -119,16 +98,17 @@ workflows:
   version: 2
 
   feature-workflow:
+    when:
+      equal: [ "feature", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
           requires:
             - build
-          filters:
-            branches:
-              only: /^feature\/.*/
 
   develop-workflow:
+    when:
+      equal: [ "develop", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -137,14 +117,15 @@ workflows:
       - docker-build:
           requires:
             - test
-      - deploy_vercel_dev:
+      - deploy_vercel:
+          name: deploy_vercel_dev
           requires:
             - docker-build
-          filters:
-            branches:
-              only: develop
+          vercel_scope: "development"
 
   integration-workflow:
+    when:
+      equal: [ "integration", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -153,14 +134,15 @@ workflows:
       - docker-build:
           requires:
             - test
-      - deploy_vercel_int:
+      - deploy_vercel:
+          name: deploy_vercel_int
           requires:
             - docker-build
-          filters:
-            branches:
-              only: integration
+          vercel_scope: "mon-organisation-integration"
 
   production-workflow:
+    when:
+      equal: [ "main", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -169,9 +151,8 @@ workflows:
       - docker-build:
           requires:
             - test
-      - deploy_vercel_prod:
+      - deploy_vercel:
+          name: deploy_vercel_prod
           requires:
             - docker-build
-          filters:
-            branches:
-              only: main
+          vercel_scope: "mon-organisation"
