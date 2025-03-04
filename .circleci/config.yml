@@ -7,7 +7,7 @@ orbs:
 executors:
   node-executor:
     docker:
-      - image: circleci/node:18
+      - image: node:18-bullseye
     working_directory: ~/project
 
 jobs:
@@ -17,9 +17,11 @@ jobs:
       - checkout
       - run:
           name: "Install dependencies"
-          command: npm install
+          command: |
+            set -e
+            npm install
       - run:
-          name: "Linting"
+          name: "Linting code"
           command: npm run lint
       - run:
           name: "Build project"
@@ -39,7 +41,9 @@ jobs:
           at: ~/project
       - run:
           name: "Run tests"
-          command: npm run test
+          command: |
+            set -e
+            npm run test
 
   docker-build:
     docker:
@@ -51,11 +55,16 @@ jobs:
       - run:
           name: "Build and tag Docker image"
           command: |
+            set -e
             docker build -t monrepo/monapp:latest .
       - run:
-          name: "Push Docker image to Docker Hub"
+          name: "Login to Docker Hub"
           command: |
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - run:
+          name: "Push Docker image"
+          command: |
+            set -e
             docker tag monrepo/monapp:latest monrepo/monapp:$CIRCLE_SHA1
             docker push monrepo/monapp:$CIRCLE_SHA1
             docker push monrepo/monapp:latest
@@ -67,7 +76,18 @@ jobs:
       - run:
           name: "Deploy to Vercel (Development)"
           command: |
+            set -e
             vercel --token $VERCEL_TOKEN --prod
+
+  deploy_vercel_int:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: "Deploy to Vercel (Integration)"
+          command: |
+            set -e
+            vercel --token $VERCEL_TOKEN --prod --scope mon-organisation-integration
 
   deploy_vercel_prod:
     executor: node-executor
@@ -76,11 +96,24 @@ jobs:
       - run:
           name: "Deploy to Vercel (Production)"
           command: |
+            set -e
             vercel --token $VERCEL_TOKEN --prod --scope mon-organisation
 
 workflows:
   version: 2
-  build-test-deploy:
+
+  feature-workflow:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+    filters:
+      branches:
+        only:
+          - /^feature\/.*/
+
+  develop-workflow:
     jobs:
       - build
       - test:
@@ -88,18 +121,45 @@ workflows:
             - build
       - docker-build:
           requires:
-            - build
+            - test
       - deploy_vercel_dev:
           requires:
-            - test
             - docker-build
-          filters:
-            branches:
-              only: develop
-      - deploy_vercel_prod:
+    filters:
+      branches:
+        only:
+          - develop
+
+  integration-workflow:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - docker-build:
           requires:
             - test
+      - deploy_vercel_int:
+          requires:
             - docker-build
-          filters:
-            branches:
-              only: main
+    filters:
+      branches:
+        only:
+          - integration
+
+  production-workflow:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - docker-build:
+          requires:
+            - test
+      - deploy_vercel_prod:
+          requires:
+            - docker-build
+    filters:
+      branches:
+        only:
+          - main
