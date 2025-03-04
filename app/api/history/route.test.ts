@@ -1,29 +1,38 @@
-import { NextRequest } from "next/server";
-import { GET, POST } from "./route"; // Import des handlers de la route
-import httpMocks from "node-mocks-http";
+import { NextRequest, NextResponse } from "next/server";
+import { GET, POST } from "./route";
+
 jest.mock("next/server", () => ({
     NextResponse: {
-        json: jest.fn((data) => ({ json: data, status: 200 })),
+        json: jest.fn((data) => new Response(JSON.stringify(data), { 
+            status: 200, 
+            headers: { "Content-Type": "application/json" } 
+        })),
     },
 }));
+
 describe("API /api/history", () => {
     it("devrait appeler GET et retourner une réponse", async () => {
-        const req = httpMocks.createRequest({ method: "GET" });
-        const res = httpMocks.createResponse();
-        const spy = jest.spyOn(global, "fetch"); // Vérifier si une requête est faite
-        await GET(req, res);
-        expect(spy).not.toHaveBeenCalled(); // On ne veut pas de fetch ici
-        expect(res._getStatusCode()).toBe(200);
-        expect(res._getData()).toBeDefined();
+        const res = await GET();
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json).toEqual([]);
     });
+
     it("devrait appeler POST et stocker une opération", async () => {
-        const req = httpMocks.createRequest({
+        const requestBody = JSON.stringify({ a: 1, b: 2, operator: "+", result: 3 });
+
+        const mockRequest = new Request("http://localhost/api/history", {
             method: "POST",
-            body: {},
+            body: requestBody,
+            headers: { "Content-Type": "application/json" }
         });
-        const res = httpMocks.createResponse();
-        await POST(req, res);
-        expect(res._getStatusCode()).toBe(200);
-        expect(res._getData()).toBeDefined();
+
+        // Tester avec fetch au lieu de NextRequest
+        const res = await POST(mockRequest);
+
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.success).toBe(true);
+        expect(json.data.length).toBe(1);
     });
 });
