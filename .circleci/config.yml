@@ -15,11 +15,19 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-
       - run:
           name: "Install dependencies"
           command: |
             set -e
             npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
       - run:
           name: "Linting code"
           command: npm run lint
@@ -37,6 +45,9 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
       - attach_workspace:
           at: ~/project
       - run:
@@ -52,11 +63,12 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: 20.10.16
+          docker_layer_caching: true
       - run:
           name: "Build and tag Docker image"
           command: |
             set -e
-            docker build -t monrepo/monapp:latest .
+            docker build --cache-from monrepo/monapp:latest -t monrepo/monapp:$CIRCLE_SHA1 .
       - run:
           name: "Login to Docker Hub"
           command: |
@@ -65,9 +77,7 @@ jobs:
           name: "Push Docker image"
           command: |
             set -e
-            docker tag monrepo/monapp:latest monrepo/monapp:$CIRCLE_SHA1
             docker push monrepo/monapp:$CIRCLE_SHA1
-            docker push monrepo/monapp:latest
 
   deploy_vercel_dev:
     executor: node-executor
@@ -77,7 +87,9 @@ jobs:
           name: "Deploy to Vercel (Development)"
           command: |
             set -e
-            vercel --token $VERCEL_TOKEN --prod
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod)
+            echo "Deployment URL: $DEPLOY_URL"
+            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
   deploy_vercel_int:
     executor: node-executor
@@ -87,7 +99,9 @@ jobs:
           name: "Deploy to Vercel (Integration)"
           command: |
             set -e
-            vercel --token $VERCEL_TOKEN --prod --scope mon-organisation-integration
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope mon-organisation-integration)
+            echo "Deployment URL: $DEPLOY_URL"
+            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
   deploy_vercel_prod:
     executor: node-executor
@@ -97,7 +111,9 @@ jobs:
           name: "Deploy to Vercel (Production)"
           command: |
             set -e
-            vercel --token $VERCEL_TOKEN --prod --scope mon-organisation
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope mon-organisation)
+            echo "Deployment URL: $DEPLOY_URL"
+            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
 workflows:
   version: 2
