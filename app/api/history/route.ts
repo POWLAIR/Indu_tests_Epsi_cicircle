@@ -19,11 +19,8 @@ export async function POST(req: NextRequest) {
             status: 200,
             headers: { "Content-Type": "application/json" }
         });
-    } catch (error) {
-        return new Response(JSON.stringify({ error: "Invalid request" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-        });
+    } catch {
+        return new Response("Error", { status: 500 });
     }
 }
 
