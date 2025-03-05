@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import Calculator from "./calculator";
+import { test, expect } from "@jest/globals";
 
 test("Addition fonctionne correctement", () => {
     render(<Calculator />);

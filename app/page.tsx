@@ -1,7 +1,7 @@
 export const metadata = {
   title: "App Router",
 };
-import Counter from "app/counter";
+// import { Counter } from "./counter";
 import Calculator from "./calculator";
 export default function Page() {
   return (
