@@ -91,62 +91,45 @@ workflows:
 
   feature-workflow:
     jobs:
-      - test
-    filters:
-      branches:
-        only:
-          - /^feature\/.*/
+      - test:
+          filters:
+            branches:
+              only:
+                - /^feature\/.*/
 
   develop-workflow:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: develop
       - test:
           requires:
             - build
+          filters:
+            branches:
+              only: develop
       - docker-build:
           requires:
             - test
+          filters:
+            branches:
+              only: develop
       - deploy_vercel:
           name: deploy_vercel_dev
           requires:
             - docker-build
           vercel_scope: "development"
-    filters:
-      branches:
-        only: develop
+          filters:
+            branches:
+              only: develop
 
   integration-workflow:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: integration
       - test:
           requires:
             - build
-      - docker-build:
-          requires:
-            - test
-      - deploy_vercel:
-          name: deploy_vercel_int
-          requires:
-            - docker-build
-          vercel_scope: "mon-organisation-integration"
-    filters:
-      branches:
-        only: integration
-
-  production-workflow:
-    jobs:
-      - build
-      - test:
-          requires:
-            - build
-      - docker-build:
-          requires:
-            - test
-      - deploy_vercel:
-          name: deploy_vercel_prod
-          requires:
-            - docker-build
-          vercel_scope: "mon-organisation"
-    filters:
-      branches:
-        only: main
