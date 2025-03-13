@@ -50,7 +50,9 @@ jobs:
           at: ~/project
       - run:
           name: "Run tests"
-          command: npm run test
+          command: |
+            npm install
+            npm run test:ci
 
   docker-build:
     docker:
