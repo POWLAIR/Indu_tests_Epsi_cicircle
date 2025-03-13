@@ -56,7 +56,7 @@ jobs:
 
   docker-build:
     docker:
-      - image: cimg/docker:current
+      - image: docker:stable
     steps:
       - checkout
       - setup_remote_docker:
