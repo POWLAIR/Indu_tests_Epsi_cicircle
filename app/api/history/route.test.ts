@@ -1,39 +1,39 @@
+import { NextResponse } from "next/server";
 import { GET, POST } from "./route";
-import { it, describe, expect } from "@jest/globals";
-import jest from "jest";
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 jest.mock("next/server", () => ({
-    NextResponse: {
-        json: jest.fn((data) => new Response(JSON.stringify(data), { 
-            status: 200, 
-            headers: { "Content-Type": "application/json" } 
-        })),
-    },
+  NextResponse: {
+    json: (data: any) => new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    })
+  }
 }));
 
-describe("API /api/history", () => {
-    it("devrait appeler GET et retourner une réponse", async () => {
-        const res = await GET();
-        expect(res.status).toBe(200);
-        const json = await res.json();
-        expect(json).toEqual([]);
+describe("History API", () => {
+  beforeEach(() => {
+    // Réinitialiser l'historique entre chaque test
+    jest.clearAllMocks();
+  });
+
+  it("GET should return empty history initially", async () => {
+    const response = await GET();
+    const data = await response.json();
+    expect(data).toEqual([]);
+  });
+
+  it("POST should add operation to history", async () => {
+    const operation = { a: 2, b: 3, operator: "+", result: 5 };
+    const request = new Request("http://localhost:3000/api/history", {
+      method: "POST",
+      body: JSON.stringify(operation)
     });
 
-    it("devrait appeler POST et stocker une opération", async () => {
-        const requestBody = JSON.stringify({ a: 1, b: 2, operator: "+", result: 3 });
-
-        const mockRequest = new Request("http://localhost/api/history", {
-            method: "POST",
-            body: requestBody,
-            headers: { "Content-Type": "application/json" }
-        });
-
-        // Tester avec fetch au lieu de NextRequest
-        const res = await POST(mockRequest);
-
-        expect(res.status).toBe(200);
-        const json = await res.json();
-        expect(json.success).toBe(true);
-        expect(json.data.length).toBe(1);
-    });
+    const response = await POST(request);
+    const data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.data).toHaveLength(1);
+    expect(data.data[0]).toEqual(operation);
+  });
 });
