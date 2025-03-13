@@ -5,9 +5,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "jest",
-    "test:watch": "jest --watchAll",
-    "test:ci": "jest --ci",
+    "test": "jest --config jest.config.cjs",
+    "test:watch": "jest --config jest.config.cjs --watchAll",
+    "test:ci": "jest --config jest.config.cjs --ci",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
