@@ -21,9 +21,7 @@ jobs:
             - v1-dependencies-
       - run:
           name: "Install dependencies"
-          command: |
-            set -e
-            npm install
+          command: npm install
       - save_cache:
           paths:
             - node_modules
@@ -52,9 +50,7 @@ jobs:
           at: ~/project
       - run:
           name: "Run tests"
-          command: |
-            set -e
-            npm run test
+          command: npm run test
 
   docker-build:
     docker:
@@ -67,7 +63,6 @@ jobs:
       - run:
           name: "Build and tag Docker image"
           command: |
-            set -e
             docker build --cache-from monrepo/monapp:latest -t monrepo/monapp:$CIRCLE_SHA1 .
       - run:
           name: "Login to Docker Hub"
@@ -75,9 +70,7 @@ jobs:
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - run:
           name: "Push Docker image"
-          command: |
-            set -e
-            docker push monrepo/monapp:$CIRCLE_SHA1
+          command: docker push monrepo/monapp:$CIRCLE_SHA1
 
   deploy_vercel:
     executor: node-executor
@@ -89,7 +82,6 @@ jobs:
       - run:
           name: "Deploy to Vercel"
           command: |
-            set -e
             DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope << parameters.vercel_scope >>)
             echo "Deployment URL: $DEPLOY_URL"
             curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
@@ -98,17 +90,14 @@ workflows:
   version: 2
 
   feature-workflow:
-    when:
-      equal: [ "feature", << pipeline.git.branch >> ]
     jobs:
-      - build
-      - test:
-          requires:
-            - build
+      - test
+    filters:
+      branches:
+        only:
+          - /^feature\/.*/
 
   develop-workflow:
-    when:
-      equal: [ "develop", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -122,10 +111,11 @@ workflows:
           requires:
             - docker-build
           vercel_scope: "development"
+    filters:
+      branches:
+        only: develop
 
   integration-workflow:
-    when:
-      equal: [ "integration", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -139,10 +129,11 @@ workflows:
           requires:
             - docker-build
           vercel_scope: "mon-organisation-integration"
+    filters:
+      branches:
+        only: integration
 
   production-workflow:
-    when:
-      equal: [ "main", << pipeline.git.branch >> ]
     jobs:
       - build
       - test:
@@ -156,3 +147,6 @@ workflows:
           requires:
             - docker-build
           vercel_scope: "mon-organisation"
+    filters:
+      branches:
+        only: main
