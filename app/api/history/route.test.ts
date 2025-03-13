@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { GET, POST } from "./route";
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
