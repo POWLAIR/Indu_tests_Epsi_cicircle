@@ -86,7 +86,7 @@ jobs:
       - run:
           name: "Deploy to Vercel"
           command: |
-            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope << parameters.vercel_scope >>)
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod)
             echo "Deployment URL: $DEPLOY_URL"
             curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
