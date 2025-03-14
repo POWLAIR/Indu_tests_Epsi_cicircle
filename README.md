@@ -21,20 +21,13 @@
 
 ## Documentation des outils
 
-| | |
-|:---:|:---:|
-| ![Vercel Logo](https://assets.vercel.com/image/upload/v1607554385/repositories/vercel/logo.png) | ![CircleCI Logo](https://banner2.cleanpng.com/20180824/xkx/kisspng-circleci-logo-continuous-integration-computer-icon-find-cloud-computing-companies-using-node-js-in-sf-1713949045291.webp) |
-| **Vercel** | **CircleCI** |
-| Plateforme de déploiement pour applications web modernes avec CI/CD automatisé | Outil d'intégration et de déploiement continu (CI/CD) |
-| [Voir le projet](https://indu-tests-epsi-cicircle.vercel.app/) | [Voir sur GitHub](https://github.com/POWLAIR/Indu_tests_Epsi_cicircle) |
-| ![Docker Logo](https://www.docker.com/wp-content/uploads/2022/03/vertical-logo-monochromatic.png) | ![GitHub Logo](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png) |
-| **Docker Hub** | **GitHub** |
-| Registre public pour stocker et distribuer des images Docker | Plateforme de gestion de code source basée sur Git |
-| [Voir l'image Docker](https://hub.docker.com/repository/docker/powlker/circleci/general) | [Voir le repository](https://github.com/POWLAIR/Indu_tests_Epsi_cicircle) |
+| Vercel | CircleCI | Docker Hub | GitHub |
+|:------:|:--------:|:----------:|:------:|
+| ![Vercel Logo](https://assets.vercel.com/image/upload/v1607554385/repositories/vercel/logo.png) | ![CircleCI Logo](https://banner2.cleanpng.com/20180824/xkx/kisspng-circleci-logo-continuous-integration-computer-icon-find-cloud-computing-companies-using-node-js-in-sf-1713949045291.webp) | ![Docker Logo](https://www.docker.com/wp-content/uploads/2022/03/vertical-logo-monochromatic.png) | ![GitHub Logo](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png) |
+| Plateforme de déploiement pour applications web modernes avec CI/CD automatisé | Outil d'intégration et de déploiement continu (CI/CD) | Registre public pour stocker et distribuer des images Docker | Plateforme de gestion de code source basée sur Git |
+| [Voir le projet](https://indu-tests-epsi-cicircle.vercel.app/) | [Voir sur GitHub](https://github.com/POWLAIR/Indu_tests_Epsi_cicircle) | [Voir l'image Docker](https://hub.docker.com/repository/docker/powlker/circleci/general) | [Voir le repository](https://github.com/POWLAIR/Indu_tests_Epsi_cicircle) |
 
 ## Introduction
-
-![Pipeline Overview](https://circleci.com/docs/assets/img/docs/pipeline.png)
 
 Cette documentation décrit en détail le fichier de configuration **CircleCI** utilisé pour automatiser les tests, la construction, l'intégration continue et le déploiement de l'application.
 
