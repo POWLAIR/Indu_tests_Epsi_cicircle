@@ -110,14 +110,15 @@ jobs:
           command: |
             apk add --update nodejs npm bash curl
       - run:
-          name: "Check Node.js version"
-          command: node -v
-      - run:
-          name: "Install latest Node.js using n"
-          shell: /bin/bash
+          name: "Check Node.js and npm versions"
           command: |
-            npm install -g n
-            n 18
+            node -v
+            npm -v
+      - run:
+          name: "Fix npm installation"
+          command: |
+            npm cache clean -f
+            npm install -g npm@latest
       - run:
           name: "Reinstall Vercel CLI"
           shell: /bin/bash
