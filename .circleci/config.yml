@@ -49,8 +49,12 @@ jobs:
       - attach_workspace:
           at: ~/project
       - run:
+          name: "Install test dependencies"
+          command: |
+            npm install --save-dev jest @testing-library/react @testing-library/jest-dom jest-environment-jsdom
+      - run:
           name: "Run tests"
-          command: npm run test
+          command: npm run test:ci
 
   docker-build:
     docker:
