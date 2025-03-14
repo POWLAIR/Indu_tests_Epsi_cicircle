@@ -88,6 +88,7 @@ jobs:
           command: |
             DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod)
             echo "Deployment URL: $DEPLOY_URL"
+            sleep 5
             curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
 
 workflows:
