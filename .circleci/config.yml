@@ -106,7 +106,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: "Install dependencies (Node.js, npm, bash)"
+          name: "Install dependencies (Node.js, npm, bash, curl)"
           command: |
             apk add --update nodejs npm bash curl
       - run:
@@ -119,6 +119,12 @@ jobs:
           command: |
             npm cache clean -f
             npm install -g npm@latest
+      - run:
+          name: "Reinstall Node.js using n"
+          shell: /bin/bash
+          command: |
+            npm install -g n
+            n 18  # Installe la version stable de Node.js 18
       - run:
           name: "Reinstall Vercel CLI"
           shell: /bin/bash
