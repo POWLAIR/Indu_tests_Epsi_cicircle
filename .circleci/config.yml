@@ -81,6 +81,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Install Vercel CLI"
+          command: npm install -g vercel
+      - run:
           name: "Deploy to Vercel"
           command: |
             DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod --scope << parameters.vercel_scope >>)
