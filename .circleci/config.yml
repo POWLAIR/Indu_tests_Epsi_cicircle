@@ -7,7 +7,7 @@ orbs:
 executors:
   node-executor:
     docker:
-      - image: circleci/node:18
+      - image: node:18-bullseye
     working_directory: ~/project
 
 jobs:
@@ -15,11 +15,19 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-
       - run:
           name: "Install dependencies"
           command: npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
       - run:
-          name: "Linting"
+          name: "Linting code"
           command: npm run lint
       - run:
           name: "Build project"
@@ -35,71 +43,99 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
       - attach_workspace:
           at: ~/project
       - run:
           name: "Run tests"
-          command: npm run test
+          command: |
+            npm install
+            npm run test:ci
 
   docker-build:
     docker:
-      - image: docker:20.10.16
+      - image: docker:stable
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.16
+          docker_layer_caching: true
       - run:
           name: "Build and tag Docker image"
           command: |
-            docker build -t monrepo/monapp:latest .
+            docker build --cache-from powlker/circleci:latest -t powlker/circleci:$CIRCLE_SHA1 .
       - run:
-          name: "Push Docker image to Docker Hub"
+          name: "Login to Docker Hub"
           command: |
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-            docker tag monrepo/monapp:latest monrepo/monapp:$CIRCLE_SHA1
-            docker push monrepo/monapp:$CIRCLE_SHA1
-            docker push monrepo/monapp:latest
+      - run:
+          name: "Push Docker image"
+          command: docker push powlker/circleci:$CIRCLE_SHA1
 
-  deploy_vercel_dev:
+  deploy_vercel:
     executor: node-executor
+    parameters:
+      vercel_scope:
+        type: string
     steps:
       - checkout
       - run:
-          name: "Deploy to Vercel (Development)"
-          command: |
-            vercel --token $VERCEL_TOKEN --prod
-
-  deploy_vercel_prod:
-    executor: node-executor
-    steps:
-      - checkout
+          name: "Install Vercel CLI"
+          command: npm install -g vercel
       - run:
-          name: "Deploy to Vercel (Production)"
+          name: "Deploy to Vercel"
           command: |
-            vercel --token $VERCEL_TOKEN --prod --scope mon-organisation
+            DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod)
+            echo "Deployment URL: $DEPLOY_URL"
+            sleep 15
+            curl -H "Authorization: Bearer $VERCEL_TOKEN" -f $DEPLOY_URL || echo "⚠️ Warning: Unable to access deployment URL, but continuing."
 
+            
 workflows:
   version: 2
-  build-test-deploy:
+
+  feature-workflow:
     jobs:
-      - build
       - test:
-          requires:
-            - build
-      - docker-build:
-          requires:
-            - build
-      - deploy_vercel_dev:
-          requires:
-            - test
-            - docker-build
+          filters:
+            branches:
+              only:
+                - /^feature\/.*/
+
+  develop-workflow:
+    jobs:
+      - build:
           filters:
             branches:
               only: develop
-      - deploy_vercel_prod:
+      - test:
           requires:
-            - test
-            - docker-build
+            - build
           filters:
             branches:
-              only: main
+              only: develop
+      - docker-build:
+          requires:
+            - test
+          filters:
+            branches:
+              only: develop
+      - deploy_vercel:
+          name: deploy_vercel_dev
+          requires:
+            - docker-build
+          vercel_scope: "powlker"
+          filters:
+            branches:
+              only: develop
+
+  integration-workflow:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: integration
+      - test:
+          requires:
+            - build
