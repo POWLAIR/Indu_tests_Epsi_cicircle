@@ -89,8 +89,8 @@ jobs:
             DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --prod)
             echo "Deployment URL: $DEPLOY_URL"
             sleep 5
-            curl -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
-
+            curl -H "Authorization: Bearer $VERCEL_TOKEN" -f $DEPLOY_URL || (echo "❌ Vercel Deployment Failed" && exit 1)
+            
 workflows:
   version: 2
 
