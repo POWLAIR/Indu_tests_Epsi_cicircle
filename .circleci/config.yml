@@ -64,7 +64,7 @@ jobs:
       - run:
           name: "Build and tag Docker image"
           command: |
-            docker build --cache-from monrepo/monapp:latest -t monrepo/monapp:$CIRCLE_SHA1 .
+            docker build --cache-from powlker/circleci:latest -t powlker/circleci:$CIRCLE_SHA1 .
       - run:
           name: "Login to Docker Hub"
           command: |
