@@ -100,37 +100,19 @@ jobs:
 
   deploy_production:
     docker:
-      - image: docker:stable
+      - image: cimg/node:18.19-browsers  
     steps:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: "Install dependencies (Node.js, npm, bash, curl)"
+          name: "Install Docker CLI"
           command: |
-            apk add --update nodejs npm bash curl
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sudo sh get-docker.sh
       - run:
-          name: "Check Node.js and npm versions"
-          command: |
-            node -v
-            npm -v
-      - run:
-          name: "Fix npm installation"
-          command: |
-            npm cache clean -f
-            npm install -g npm@latest
-      - run:
-          name: "Reinstall Node.js using n"
-          shell: /bin/bash
-          command: |
-            npm install -g n
-            n 18  # Installe la version stable de Node.js 18
-      - run:
-          name: "Reinstall Vercel CLI"
-          shell: /bin/bash
-          command: |
-            npm uninstall -g vercel
-            npm install -g vercel
+          name: "Install Vercel CLI"
+          command: sudo npm install -g vercel
       - run:
           name: "Login to Docker Hub"
           command: |
@@ -143,7 +125,6 @@ jobs:
             docker push powlker/circleci:latest
       - run:
           name: "Deploy to production"
-          shell: /bin/bash
           command: |
             vercel --token $VERCEL_TOKEN --prod --scope powlker
             echo "Production deployed"
