@@ -99,14 +99,27 @@ jobs:
             curl -H "Authorization: Bearer $VERCEL_TOKEN" -f $DEPLOY_URL || echo "⚠️ Warning: Unable to access deployment URL, but continuing."
 
   deploy_production:
-    executor: node-executor
+    docker:
+      - image: docker:stable
     steps:
       - checkout
-      - attach_workspace:
-          at: ~/project
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: "Install Node.js and npm"
+          command: |
+            apk add --update nodejs npm
+      - run:
+          name: "Install Vercel CLI"
+          command: npm install -g vercel
+      - run:
+          name: "Login to Docker Hub"
+          command: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - run:
           name: "Push Docker image as latest"
           command: |
+            docker pull powlker/circleci:$CIRCLE_SHA1
             docker tag powlker/circleci:$CIRCLE_SHA1 powlker/circleci:latest
             docker push powlker/circleci:latest
       - run:
