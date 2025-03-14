@@ -126,7 +126,7 @@ jobs:
       - run:
           name: "Deploy to production"
           command: |
-            vercel --token $VERCEL_TOKEN --prod --scope powlker
+            vercel --token $VERCEL_TOKEN --prod
             echo "Production deployed"
 
 workflows:
