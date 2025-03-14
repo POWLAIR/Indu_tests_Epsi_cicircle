@@ -106,16 +106,21 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: "Install latest Node.js and npm"
+          name: "Install dependencies (Node.js, npm, bash)"
           command: |
-            apk add --update nodejs npm
-            npm install -g n
-            n 18  # Utiliser Node.js 18 pour éviter l'erreur de syntaxe
+            apk add --update nodejs npm bash curl
       - run:
           name: "Check Node.js version"
           command: node -v
       - run:
+          name: "Install latest Node.js using n"
+          shell: /bin/bash
+          command: |
+            npm install -g n
+            n 18
+      - run:
           name: "Reinstall Vercel CLI"
+          shell: /bin/bash
           command: |
             npm uninstall -g vercel
             npm install -g vercel
@@ -131,6 +136,7 @@ jobs:
             docker push powlker/circleci:latest
       - run:
           name: "Deploy to production"
+          shell: /bin/bash
           command: |
             vercel --token $VERCEL_TOKEN --prod --scope powlker
             echo "Production deployed"
