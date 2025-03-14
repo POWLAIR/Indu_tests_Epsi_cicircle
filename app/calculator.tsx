@@ -12,41 +12,50 @@ export default function Calculator() {
     const [history, setHistory] = useState<{ a: number; b: number; operator: string; result: number | string }[]>([]);
 
     async function calculate() {
-        const numA = parseFloat(a);
-        const numB = parseFloat(b);
-        if (isNaN(numA) || isNaN(numB)) {
-            setResult("Veuillez entrer des nombres valides");
-            return;
+        try {
+            const numA = parseFloat(a);
+            const numB = parseFloat(b);
+            if (isNaN(numA) || isNaN(numB)) {
+                setResult("Veuillez entrer des nombres valides");
+                return;
+            }
+            let operationResult: number | string = 0;
+            switch (operator) {
+                case '+': operationResult = Number((numA + numB).toFixed(2)); break;
+                case '-': operationResult = Number((numA - numB).toFixed(2)); break;
+                case '*': operationResult = Number((numA * numB).toFixed(2)); break;
+                case '/': {
+                    if (numB === 0) {
+                        setResult("Error : Division par zéro");
+                        return;
+                    }
+                    operationResult = Number((numA / numB).toFixed(2));
+                    break;
+                };
+                default: setResult("Opérateur non supporté");
+            }
+
+            setResult(operationResult);
+
+            try {
+                // Envoyer l'opération à l'API
+                await fetch("/api/history", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ a: numA, b: numB, operator, result: operationResult }),
+                });
+
+                // Mettre à jour l'historique
+                const response = await fetch("/api/history");
+                const data = await response.json();
+                setHistory(data);
+            } catch (error) {
+                console.error("Erreur lors de la communication avec l'API:", error);
+            }
+        } catch (error) {
+            setResult("Une erreur est survenue");
+            console.error("Erreur lors du calcul:", error);
         }
-        let operationResult: number | string = 0;
-        switch (operator) {
-            case '+': operationResult = numA + numB; break;
-            case '-': operationResult = numA - numB; break;
-            case '*': operationResult = numA * numB; break;
-            case '/': {
-                if (numB === 0) {
-                    setResult("Error : Division par zéro");
-                    return;
-                }
-                operationResult = numA / numB;
-                break;
-            };
-            default: setResult("Opérateur non supporté");
-        }
-
-        setResult(operationResult);
-
-        // Envoyer l'opération à l'API
-        await fetch("/api/history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ a: numA, b: numB, operator, result: operationResult }),
-        });
-
-        // Mettre à jour l'historique
-        fetch("/api/history")
-            .then(res => res.json())
-            .then(data => setHistory(data));
     }
 
     return (
