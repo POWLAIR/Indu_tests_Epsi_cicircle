@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+declare const fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export default function Calculator() {
     const [a, setA] = useState("");

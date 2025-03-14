@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { render, screen } from "@testing-library/react";
+import { describe, it, expect } from "@jest/globals";
 import Home from "@/pages/home/index";
 
 describe("Home", () => {

@@ -1,29 +1,38 @@
-import { NextRequest } from "next/server";
-import { GET, POST } from "./route"; // Import des handlers de la route
-import httpMocks from "node-mocks-http";
+import { GET, POST } from "./route";
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+
 jest.mock("next/server", () => ({
-    NextResponse: {
-        json: jest.fn((data) => ({ json: data, status: 200 })),
-    },
+  NextResponse: {
+    json: (data: any) => new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    })
+  }
 }));
-describe("API /api/history", () => {
-    it("devrait appeler GET et retourner une réponse", async () => {
-        const req = httpMocks.createRequest({ method: "GET" });
-        const res = httpMocks.createResponse();
-        const spy = jest.spyOn(global, "fetch"); // Vérifier si une requête est faite
-        await GET(req, res);
-        expect(spy).not.toHaveBeenCalled(); // On ne veut pas de fetch ici
-        expect(res._getStatusCode()).toBe(200);
-        expect(res._getData()).toBeDefined();
+
+describe("History API", () => {
+  beforeEach(() => {
+    // Réinitialiser l'historique entre chaque test
+    jest.clearAllMocks();
+  });
+
+  it("GET should return empty history initially", async () => {
+    const response = await GET();
+    const data = await response.json();
+    expect(data).toEqual([]);
+  });
+
+  it("POST should add operation to history", async () => {
+    const operation = { a: 2, b: 3, operator: "+", result: 5 };
+    const request = new Request("http://localhost:3000/api/history", {
+      method: "POST",
+      body: JSON.stringify(operation)
     });
-    it("devrait appeler POST et stocker une opération", async () => {
-        const req = httpMocks.createRequest({
-            method: "POST",
-            body: {},
-        });
-        const res = httpMocks.createResponse();
-        await POST(req, res);
-        expect(res._getStatusCode()).toBe(200);
-        expect(res._getData()).toBeDefined();
-    });
+
+    const response = await POST(request);
+    const data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.data).toHaveLength(1);
+    expect(data.data[0]).toEqual(operation);
+  });
 });

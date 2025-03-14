@@ -1,42 +1,44 @@
-# Base image
+# ⚡ Étape 1 : Image pour le développement
 FROM node:18-alpine AS development
 
-# Set working directory
+# Définir le répertoire de travail
 WORKDIR /app
 
-# Copy package files
+# Copier uniquement les fichiers package.json pour optimiser le cache Docker
 COPY package*.json ./
 
-# Install dependencies
+# Installer les dépendances en mode développement
 RUN npm install
 
-# Copy project files
+# Copier tout le projet après installation des dépendances
 COPY . .
 
-# Development stage complete
-# Production build stage
+# ⚡ Étape 2 : Build de l'application pour la production
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Copier les fichiers depuis l'étape "development"
 COPY --from=development /app ./
 
-# Build the application
+# Construire l'application Next.js
 RUN npm run build
 
-# Production stage
+# ⚡ Étape 3 : Image finale pour la production
 FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Copy necessary files from builder
+# Copier uniquement les fichiers essentiels pour exécuter Next.js en production
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
 
-# Expose port
+# Réinstaller uniquement les dépendances nécessaires pour la production
+RUN npm install --omit=dev --prefer-offline --no-audit
+
+# Exposer le port utilisé par Next.js
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"] 
+# Lancer l'application en production
+CMD ["npm", "start"]
