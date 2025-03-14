@@ -106,12 +106,19 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: "Install Node.js and npm"
+          name: "Check Node.js version"
+          command: node -v
+      - run:
+          name: "Install latest Node.js"
           command: |
             apk add --update nodejs npm
+            npm install -g n
+            n latest
       - run:
-          name: "Install Vercel CLI"
-          command: npm install -g vercel
+          name: "Reinstall Vercel CLI"
+          command: |
+            npm uninstall -g vercel
+            npm install -g vercel
       - run:
           name: "Login to Docker Hub"
           command: |
@@ -126,7 +133,7 @@ jobs:
           name: "Deploy to production"
           command: |
             vercel --token $VERCEL_TOKEN --prod --scope powlker
-            echo "✅ Production deployed"
+            echo "Production deployed"
 
 workflows:
   version: 2
